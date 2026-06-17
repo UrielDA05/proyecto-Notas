@@ -1,0 +1,162 @@
+body{
+    background-color: #fe6929;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    padding: auto;
+
+}
+
+.login-form{
+    background-color: rgb(255, 255, 255);
+    padding: 12px;
+    display: flex; /* cambio de comportamiento de fila */
+    flex-direction: column;
+    font-family: "Indie Flower", sans-serif;
+    align-items: center;
+    border-radius: 12px;
+    box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.7);
+}
+
+div i{
+    font-size: 80px;
+    color: #2dc7ff;
+    margin: auto;
+}
+
+input{
+    padding: 4px;
+    margin-bottom: 12px;
+    width: 100%;
+    border: none;
+    border-bottom: #fe6929 2px solid;
+    outline: none;
+}
+
+button[type="submit"]{
+    background-color: #2dc7ff;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    font-style: sans-serif;
+    padding: 4px 8px;
+    border: none;
+    width: 100%;
+    transition: all 0.5s ;
+}
+
+button:hover{
+    transform: scale(1.1);
+    background-color: #61e786;
+}
+
+.hidden { display: none !important; }
+#msg {
+    font-size: 1.1rem;
+    color: #fff;
+    background: #2dc7ff;
+    padding: 4px 8px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+.auth-links {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+}
+.auth-links a {
+    color: #fe6929;
+    text-decoration: none;
+    font-size: 1.1rem;
+}
+.auth-links a:hover { text-decoration: underline; }
+
+/* Correcciones para adaptar la PWA dinámica al diseño original */
+.hidden { 
+    display: none !important; 
+}
+
+/* Forzar a que el contenedor DIV se comporte exactamente como tu .login-form original */
+div.login-form {
+    background-color: rgb(255, 255, 255);
+    padding: 25px;
+    display: flex;
+    flex-direction: column;
+    font-family: "Indie Flower", sans-serif;
+    align-items: center;
+    border-radius: 12px;
+    box-shadow: 0px 0px 30px rgba(0, 0, 0, 0.7);
+    width: 320px;
+    box-sizing: border-box;
+}
+
+/* Estilo para los botones internos que perdieron diseño */
+div.login-form button {
+    background-color: #2dc7ff;
+    font-size: 1.3rem;
+    border-radius: 8px;
+    font-family: "Indie Flower", sans-serif;
+    padding: 6px 12px;
+    border: none;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.5s;
+    margin-top: 10px;
+}
+
+div.login-form button:hover {
+    transform: scale(1.05);
+    background-color: #61e786;
+}
+
+/* Inputs de texto dentro del contenedor div */
+div.login-form input {
+    font-family: "Indie Flower", sans-serif;
+    font-size: 1.2rem;
+    padding: 6px;
+    margin-bottom: 15px;
+    width: 100%;
+    border: none;
+    border-bottom: #fe6929 2px solid;
+    outline: none;
+    box-sizing: border-box;
+}
+
+/* Estilos de los enlaces de registro y recuperación */
+.auth-links {
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+}
+
+.auth-links a {
+    color: #fe6929;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-family: "Indie Flower", sans-serif;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+#msg {
+    font-family: "Indie Flower", sans-serif;
+    font-size: 1.1rem;
+    color: #fff;
+    background: #2dc7ff;
+    padding: 6px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
