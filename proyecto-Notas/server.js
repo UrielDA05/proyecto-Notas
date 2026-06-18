@@ -47,8 +47,8 @@ async function initServer() {
         // Configurar correo (SIN BLOQUEAR EL ARRANQUE)
         emailTransporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
+            port: 465,
+            secure: true,
             auth: {
                 user: MI_GMAIL,
                 pass: MI_PASSWORD_APP
