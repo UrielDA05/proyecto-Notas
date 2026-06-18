@@ -1,106 +1,152 @@
-*{
+/* ===================================================
+   ESTILO DESDE CERO: TABLERO PRINCIPAL DE NOTAS (CRUD)
+   =================================================== */
+
+body {
+    background-color: #f4f6f9;
     margin: 0;
     padding: 0;
-    font-family: sans-serif;
+    font-family: Arial, sans-serif;
 }
-header{
+
+header {
     background-color: #fe6929;
-    color: rgb(0, 0, 0);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    color: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+header form {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 4px;
+    background: white;
+    border-radius: 20px;
+    padding: 5px 15px;
+    width: 40%;
+    max-width: 400px;
 }
 
-header form{
-    display: flex;
-    width: fit-content;
-    border-bottom: 1px solid rgb(0, 0, 0);
-    
-}
-
-input{
-    background-color: transparent;
-    color: rgb(0, 0, 0);
+header form input {
     border: none;
     outline: none;
-    text-align: center;
-    padding-right: 4px;
-    font-size: 20px;
+    width: 100%;
+    font-size: 1rem;
 }
 
-input::placeholder{
-    color: black;
+header form div i {
+    color: #fe6929;
+    cursor: pointer;
 }
 
-#btn-salir{
-    background-color: transparent;
+#btn-salir {
+    background: transparent;
     border: none;
-    color: black;
-    font-size: 20px;
-    transition: all 0.3s ease-in-out;
-    font-weight: bold;
+    color: white;
+    font-size: 1.6rem;
+    cursor: pointer;
+    transition: transform 0.2s;
 }
 
-#btn-salir:hover{
-    transform: scale(1.2) rotate(90deg);
+#btn-salir:hover {
+    transform: scale(1.1);
 }
 
-.btn-add{
-    background-color: #fe6929;
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 20px;
+main {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    position: relative;
+    min-height: 80vh;
+}
+
+/* Botón flotante circular + de tu boceto */
+.btn-add {
     position: fixed;
-    right: 12px;
-    bottom: 12px;
-    font-size: 40px;
-    transition: all 0.5s ease-in-out;
-    text-decoration: none;
-    text-align: center;
+    bottom: 30px;
+    right: 30px;
+    background-color: #fe6929;
+    color: white;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: 2.5rem;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: all 0.3s;
+    z-index: 10;
 }
 
-.btn-add:hover{
+.btn-add:hover {
+    transform: scale(1.1) rotate(90deg);
     background-color: #2dc7ff;
-    transform: rotate(180deg);
 }
 
-ul{
+/* Lista de tarjetas cuadriculadas */
+#listaNotas {
     list-style: none;
-    width: 100%;
-    padding: 20px;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
 }
-li{
-    box-shadow: 0 0 10px rgba(36, 65, 253, 0.7);
-    max-width: 90%;
-    padding: 8px;
-    min-width: 70%;
-    display: flex;
-    justify-content: space-between;
-}
-li h1{
-    color: #2dc7ff;
-}
-li p{
-    color: rgb(0, 0, 0);
-}
-li button{
-    color: rgb(220, 33, 33);
-    border: none;
-    background-color: transparent;
-    font-size: 20px;
-    transition: all 0.3s ease-in-out;
-}
-.trash{display: block;}
-.trash2{display: none;}
 
-li button:hover .trash{
-    display: none;
+#listaNotas li {
+    background-color: #2dc7ff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: transform 0.2s;
+    min-height: 140px;
+    border: 1px solid rgba(0,0,0,0.05);
 }
-li button:hover .trash2{
-    display: block;
+
+#listaNotas li:hover {
+    transform: translateY(-4px);
 }
+
+#listaNotas li h1 {
+    margin: 0 0 10px 0;
+    font-size: 1.4rem;
+    color: #222;
+    word-break: break-word;
+}
+
+#listaNotas li p {
+    margin: 0;
+    font-size: 1rem;
+    color: #444;
+    flex-grow: 1;
+    word-break: break-word;
+}
+
+#listaNotas li button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    align-self: flex-end;
+    font-size: 1.2rem;
+    padding: 5px;
+    position: relative;
+}
+
+#listaNotas li button .trash { color: #dc3545; }
+#listaNotas li button .trash2 { display: none; color: #721c24; }
+
+#listaNotas li button:hover .trash { display: none; }
+#listaNotas li button:hover .trash2 { display: inline-block; }

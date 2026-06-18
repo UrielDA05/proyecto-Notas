@@ -48,7 +48,6 @@ function hideMessage() {
 
 btnAction.onclick = async () => {
     hideMessage();
-    // ⚠️ AQUÍ USAMOS 'nombre' PARA HACER MATCH CON TU INPUT ORIGINAL
     const email = document.getElementById('nombre').value;
     const password = document.getElementById('password').value;
     
@@ -72,6 +71,24 @@ btnAction.onclick = async () => {
             showMessage(data.error || "Ocurrió un error.");
         } else {
             showMessage(data.message);
+            
+            if(currentMode === 'reset') {
+                setTimeout(() => {
+                    currentMode = 'login';
+                    if(formTitle) formTitle.textContent = "Iniciar Sesión";
+                    if(btnAction) btnAction.textContent = "Iniciar sesión";
+                    
+                    document.getElementById('nombre').style.display = 'block';
+                    document.getElementById('password').style.display = 'block';
+                    document.getElementById('nombre').value = '';
+                    document.getElementById('password').value = '';
+                    
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    
+                    hideMessage();
+                }, 3000); 
+            }
+            
             if(currentMode === 'login') {
                 localStorage.setItem('userId', data.userId);
                 window.location.href = 'inicio.html';

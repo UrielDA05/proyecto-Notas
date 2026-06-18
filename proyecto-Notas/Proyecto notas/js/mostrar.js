@@ -2,22 +2,27 @@ async function cargarNotas() {
     const userId = localStorage.getItem('userId');
     if (!userId) window.location.href = "index.html";
 
-    // Tu referencia exacta de la captura image_4639a8.png
     const ul = document.getElementById('listaNotas');
+    if (!ul) return;
     ul.innerHTML = "";
 
     try {
         const res = await fetch('/api/notes', {
             headers: { 'user-id': userId }
         });
-        const notes = await res.json();
+        const notas = await res.json();
 
-        notes.forEach(nota => {
+        notas.forEach(nota => {
             const li = document.createElement("li");
             
-            // Inyectamos tus clases nativas de los botes de basura (.trash y .trash2)
+            if(nota.color) {
+                li.style.backgroundColor = nota.color;
+            } else {
+                li.style.backgroundColor = '#2dc7ff';
+            }
+
             li.innerHTML = `
-            <div>
+            <div class="nota-contenido" style="flex-grow: 1; width: 100%;">
                 <h1>${nota.title}</h1>
                 <p>${nota.content}</p>
             </div>
@@ -29,20 +34,27 @@ async function cargarNotas() {
             </div>
             `;
             
-            // Conserva tus estilos dinámicos de color de fondo seleccionados por el usuario
-            if(nota.color) li.style.backgroundColor = nota.color;
+            li.addEventListener('click', (e) => {
+                if (e.target.closest('button')) return;
+                localStorage.setItem('notaEditar', JSON.stringify(nota));
+                window.location.href = "agregar.html";
+            });
             
             ul.appendChild(li);
         });
     } catch (error) {
-        console.error("Error al cargar notas asíncronamente:", error);
+        console.error("Error cargando notas asíncronamente:", error);
     }
 }
 
 async function eliminarNota(event, id) {
-    event.stopPropagation();
-    await fetch(`/api/notes/${id}`, { method: 'DELETE' });
-    cargarNotas();
+    event.stopPropagation(); 
+    try {
+        await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+        cargarNotas();
+    } catch (err) {
+        console.error("Error al eliminar nota:", err);
+    }
 }
 
 window.onload = cargarNotas;
