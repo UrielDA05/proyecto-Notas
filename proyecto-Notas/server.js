@@ -36,19 +36,16 @@ async function initServer() {
     pool = mysql.createPool(dbConfig);
 
     // Configuración segura para Nodemailer (Evita el bloqueo de IPs en servidores en la nube)
-    emailTransporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true, 
+        port: 587,            // Usa 587 en lugar de 465 o 25
+        secure: false,        // Debe ser false para el puerto 587
         auth: {
-            user: MI_GMAIL,
-            pass: MI_PASSWORD_APP
-        },
-        tls: {
-            rejectUnauthorized: false
-        }
-    });
-
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
+  }
+});
+      
     // Inicialización de Tablas Relacionales
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
