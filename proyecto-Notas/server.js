@@ -1,4 +1,4 @@
-console.log("VERSION NUEVA DEL SERVER");
+console.log("🚀 INICIANDO VERSIÓN DEFINITIVA DEL SERVER...");
 const express = require('express');
 const mysql = require('mysql2/promise');
 const path = require('path');
@@ -17,13 +17,8 @@ let emailTransporter;
 // ======================
 // CONFIGURACIÓN EMAIL
 // ======================
-
 const MI_GMAIL = process.env.EMAIL_USER;
 const MI_PASSWORD_APP = process.env.EMAIL_PASS;
-
-// ======================
-// URL BASE
-// ======================
 
 const BASE_URL = process.env.RAILWAY_PUBLIC_DOMAIN
     ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
@@ -32,10 +27,8 @@ const BASE_URL = process.env.RAILWAY_PUBLIC_DOMAIN
 // ======================
 // INICIALIZACIÓN
 // ======================
-
 async function initServer() {
     try {
-
         const dbConfig = {
             host: process.env.DB_HOST,
             user: process.env.DB_USER,
@@ -48,15 +41,10 @@ async function initServer() {
         };
 
         pool = mysql.createPool(dbConfig);
-
         await pool.query('SELECT 1');
+        console.log('🐬 Conectado a la base de datos MySQL (Clever Cloud).');
 
-        console.log('🐬 Servidor conectado a un Pool estable de MySQL.');
-
-        // ======================
-        // SMTP GMAIL
-        // ======================
-
+        // Configurar correo (SIN BLOQUEAR EL ARRANQUE)
         emailTransporter = nodemailer.createTransport({
             host: 'smtp.gmail.com',
             port: 587,
@@ -66,15 +54,9 @@ async function initServer() {
                 pass: MI_PASSWORD_APP
             }
         });
+        console.log('📧 Configuración de SMTP cargada en memoria.');
 
-        //await emailTransporter.verify();
-
-        console.log('📧 SMTP conectado correctamente.');
-
-        // ======================
-        // TABLA USUARIOS
-        // ======================
-
+        // Crear tablas si no existen
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -86,10 +68,6 @@ async function initServer() {
             )
         `);
 
-        // ======================
-        // TABLA NOTAS
-        // ======================
-
         await pool.query(`
             CREATE TABLE IF NOT EXISTS notes (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -97,30 +75,23 @@ async function initServer() {
                 title VARCHAR(255),
                 content TEXT,
                 color VARCHAR(50),
-                FOREIGN KEY (user_id)
-                REFERENCES users(id)
-                ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             )
         `);
-
         console.log('✅ Tablas verificadas.');
 
     } catch (error) {
-        console.error('❌ Error inicializando servidor:', error);
-        throw error;
+        console.error('❌ Error inicializando base de datos:', error);
     }
 }
 
 // ======================
-// REGISTRO
+// RUTAS (API)
 // ======================
 
 app.post('/api/register', async (req, res) => {
-
     const { username, email, password } = req.body;
-
     try {
-
         const token = crypto.randomBytes(32).toString('hex');
 
         await pool.query(
@@ -128,8 +99,7 @@ app.post('/api/register', async (req, res) => {
             [username, email, password, token]
         );
 
-        const verificationLink =
-            `${BASE_URL}/api/verify?token=${token}`;
+        const verificationLink = `${BASE_URL}/api/verify?token=${token}`;
 
         const mailOptions = {
             from: MI_GMAIL,
@@ -138,105 +108,57 @@ app.post('/api/register', async (req, res) => {
             html: `
                 <h2>Hola ${username}</h2>
                 <p>Verifica tu cuenta haciendo clic en el siguiente enlace:</p>
-                <a href="${verificationLink}">
-                    Verificar Cuenta
-                </a>
+                <a href="${verificationLink}">Verificar Cuenta</a>
             `
         };
 
-        console.log('📨 Enviando correo a:', email);
-
+        console.log('📨 Intentando enviar correo a:', email);
         const info = await emailTransporter.sendMail(mailOptions);
+        console.log('✅ Correo enviado con éxito:', info.messageId);
 
-        console.log('✅ Correo enviado:', info.messageId);
-
-        res.json({
-            message: 'Usuario registrado. Revisa tu correo.'
-        });
+        res.json({ message: 'Usuario registrado. Revisa tu correo.' });
 
     } catch (err) {
-
         console.error(err);
-
         if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({
-                error: 'El correo ya está registrado.'
-            });
+            return res.status(400).json({ error: 'El correo ya está registrado.' });
         }
-
-        res.status(500).json({
-            error: 'Error en el servidor durante el registro.'
-        });
+        res.status(500).json({ error: 'Error en el servidor durante el registro.' });
     }
 });
 
-// ======================
-// VERIFICAR CUENTA
-// ======================
-
 app.get('/api/verify', async (req, res) => {
-
     const { token } = req.query;
-
     try {
-
-        const [users] = await pool.query(
-            'SELECT * FROM users WHERE token = ?',
-            [token]
-        );
-
+        const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
         if (users.length === 0) {
             return res.status(400).send('Token inválido.');
         }
 
-        await pool.query(
-            'UPDATE users SET verified = TRUE, token = NULL WHERE id = ?',
-            [users[0].id]
-        );
+        await pool.query('UPDATE users SET verified = TRUE, token = NULL WHERE id = ?', [users[0].id]);
 
         res.send(`
             <div style="font-family:sans-serif;text-align:center;margin-top:50px;">
                 <h1>✅ Cuenta verificada</h1>
                 <p>Ya puedes iniciar sesión.</p>
-                <a href="${BASE_URL}">
-                    Volver a la aplicación
-                </a>
+                <a href="${BASE_URL}">Volver a la aplicación</a>
             </div>
         `);
-
     } catch (error) {
-
         console.error(error);
-
         res.status(500).send('Error verificando cuenta.');
     }
 });
 
-// ======================
-// LOGIN
-// ======================
-
 app.post('/api/login', async (req, res) => {
-
     const { email, password } = req.body;
-
     try {
-
-        const [users] = await pool.query(
-            'SELECT * FROM users WHERE email = ? AND password = ?',
-            [email, password]
-        );
-
+        const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
         if (users.length === 0) {
-            return res.status(400).json({
-                error: 'Credenciales incorrectas.'
-            });
+            return res.status(400).json({ error: 'Credenciales incorrectas.' });
         }
-
         if (!users[0].verified) {
-            return res.status(400).json({
-                error: 'Debes verificar tu correo.'
-            });
+            return res.status(400).json({ error: 'Debes verificar tu correo.' });
         }
 
         res.json({
@@ -244,47 +166,24 @@ app.post('/api/login', async (req, res) => {
             userId: users[0].id,
             username: users[0].username
         });
-
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            error: 'Error en el inicio de sesión.'
-        });
+        res.status(500).json({ error: 'Error en el inicio de sesión.' });
     }
 });
 
-// ======================
-// RECUPERAR CONTRASEÑA
-// ======================
-
 app.post('/api/recover', async (req, res) => {
-
     const { email } = req.body;
-
     try {
-
-        const [users] = await pool.query(
-            'SELECT * FROM users WHERE email = ?',
-            [email]
-        );
-
+        const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
         if (users.length === 0) {
-            return res.status(400).json({
-                error: 'Correo no registrado.'
-            });
+            return res.status(400).json({ error: 'Correo no registrado.' });
         }
 
         const token = crypto.randomBytes(32).toString('hex');
+        await pool.query('UPDATE users SET token = ? WHERE id = ?', [token, users[0].id]);
 
-        await pool.query(
-            'UPDATE users SET token = ? WHERE id = ?',
-            [token, users[0].id]
-        );
-
-        const recoveryLink =
-            `${BASE_URL}/recuperar.html?token=${token}`;
+        const recoveryLink = `${BASE_URL}/recuperar.html?token=${token}`;
 
         const mailOptions = {
             from: MI_GMAIL,
@@ -292,156 +191,67 @@ app.post('/api/recover', async (req, res) => {
             subject: 'Recuperación de Contraseña',
             html: `
                 <p>Haz clic en el siguiente enlace para recuperar tu contraseña:</p>
-                <a href="${recoveryLink}">
-                    Recuperar Contraseña
-                </a>
+                <a href="${recoveryLink}">Recuperar Contraseña</a>
             `
         };
 
         const info = await emailTransporter.sendMail(mailOptions);
-
         console.log('✅ Correo recuperación:', info.messageId);
 
-        res.json({
-            message: 'Correo de recuperación enviado.'
-        });
-
+        res.json({ message: 'Correo de recuperación enviado.' });
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            error: 'Error procesando recuperación.'
-        });
+        res.status(500).json({ error: 'Error procesando recuperación.' });
     }
 });
-
-// ======================
-// NUEVA CONTRASEÑA
-// ======================
 
 app.post('/api/reset-password', async (req, res) => {
-
     const { token, newPassword } = req.body;
-
     try {
-
-        const [users] = await pool.query(
-            'SELECT * FROM users WHERE token = ?',
-            [token]
-        );
-
+        const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
         if (users.length === 0) {
-            return res.status(400).json({
-                error: 'Token inválido.'
-            });
+            return res.status(400).json({ error: 'Token inválido.' });
         }
 
-        await pool.query(
-            'UPDATE users SET password = ?, token = NULL WHERE id = ?',
-            [newPassword, users[0].id]
-        );
-
-        res.json({
-            message: 'Contraseña actualizada.'
-        });
-
+        await pool.query('UPDATE users SET password = ?, token = NULL WHERE id = ?', [newPassword, users[0].id]);
+        res.json({ message: 'Contraseña actualizada.' });
     } catch (error) {
-
         console.error(error);
-
-        res.status(500).json({
-            error: 'Error actualizando contraseña.'
-        });
+        res.status(500).json({ error: 'Error actualizando contraseña.' });
     }
 });
 
-// ======================
-// OBTENER NOTAS
-// ======================
-
 app.get('/api/notes', async (req, res) => {
-
     const userId = req.headers['user-id'];
-
-    const [notes] = await pool.query(
-        'SELECT * FROM notes WHERE user_id = ?',
-        [userId]
-    );
-
+    const [notes] = await pool.query('SELECT * FROM notes WHERE user_id = ?', [userId]);
     res.json(notes);
 });
 
-// ======================
-// CREAR NOTA
-// ======================
-
 app.post('/api/notes', async (req, res) => {
-
     const { title, content, color, userId } = req.body;
-
-    await pool.query(
-        'INSERT INTO notes (user_id,title,content,color) VALUES (?,?,?,?)',
-        [userId, title, content, color]
-    );
-
-    res.json({
-        message: 'Nota creada.'
-    });
+    await pool.query('INSERT INTO notes (user_id,title,content,color) VALUES (?,?,?,?)', [userId, title, content, color]);
+    res.json({ message: 'Nota creada.' });
 });
-
-// ======================
-// ACTUALIZAR NOTA
-// ======================
 
 app.put('/api/notes/:id', async (req, res) => {
-
     const { title, content, color } = req.body;
-
-    await pool.query(
-        'UPDATE notes SET title=?, content=?, color=? WHERE id=?',
-        [title, content, color, req.params.id]
-    );
-
-    res.json({
-        message: 'Nota actualizada.'
-    });
+    await pool.query('UPDATE notes SET title=?, content=?, color=? WHERE id=?', [title, content, color, req.params.id]);
+    res.json({ message: 'Nota actualizada.' });
 });
-
-// ======================
-// ELIMINAR NOTA
-// ======================
 
 app.delete('/api/notes/:id', async (req, res) => {
-
-    await pool.query(
-        'DELETE FROM notes WHERE id=?',
-        [req.params.id]
-    );
-
-    res.json({
-        message: 'Nota eliminada.'
-    });
+    await pool.query('DELETE FROM notes WHERE id=?', [req.params.id]);
+    res.json({ message: 'Nota eliminada.' });
 });
 
 // ======================
-// ARRANQUE
+// ARRANQUE RAPIDO
 // ======================
-
 const PORT = process.env.PORT || 3000;
 
-initServer()
-    .then(() => {
-
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-        });
-
-    })
-    .catch(err => {
-
-        console.error('❌ No se pudo iniciar el servidor.');
-        console.error(err);
-
-        process.exit(1);
+initServer().then(() => {
+    // Encendemos el puerto inmediatamente
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 SERVIDOR LISTO Y ESCUCHANDO EN EL PUERTO ${PORT}`);
     });
+});
