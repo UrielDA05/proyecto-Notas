@@ -59,14 +59,19 @@ async function initServer() {
     `);
 
     emailTransporter = nodemailer.createTransport({
-        service: 'gmail',
+        service: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
             user: MI_GMAIL,
             pass: MI_PASSWORD_APP
+        },
+        tls:{
+            rejectUnauthorized: false
         }
     });
     
-    console.log("🐬 Servidor conectado a un Pool estable de MySQL.");
+    console.log("Servidor conectado a un Pool estable de MySQL.");
 }
 
 app.post('/api/register', async (req, res) => {
@@ -96,7 +101,7 @@ app.post('/api/register', async (req, res) => {
 
         res.json({ message: 'Usuario registrado. Por favor, revisa tu Gmail para activar tu cuenta.' });
     } catch (err) {
-        console.error("❌ Error en registro:", err);
+        console.error("Error en registro:", err);
         res.status(400).json({ error: 'El correo electrónico ya existe o los datos son inválidos.' });
     }
 });
