@@ -153,7 +153,8 @@ app.post('/api/recover', async (req, res) => {
         const token = crypto.randomBytes(32).toString('hex');
         await pool.query('UPDATE users SET token = ? WHERE id = ?', [token, users[0].id]);
 
-        const recoveryLink = `${BASE_URL}/recuperar.html?token=${token}`;
+        // Cambiamos "recuperar.html" por "nueva-password.html"
+        const recoveryLink = `${BASE_URL}/nueva-password.html?token=${token}`;
 
         // ENVIAR RECUPERACIÓN POR EL TÚNEL HTTP DE GOOGLE
         await fetch(GOOGLE_SCRIPT_URL, {
