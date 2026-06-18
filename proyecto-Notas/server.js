@@ -67,7 +67,7 @@ async function initServer() {
             }
         });
 
-        await emailTransporter.verify();
+        //await emailTransporter.verify();
 
         console.log('📧 SMTP conectado correctamente.');
 
