@@ -1,9 +1,8 @@
-console.log("🚀 INICIANDO VERSIÓN DEFINITIVA DEL SERVER...");
+console.log("🚀 INICIANDO VERSIÓN CON WEBHOOK DE GOOGLE...");
 const express = require('express');
 const mysql = require('mysql2/promise');
 const path = require('path');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
 
 const app = express();
 
@@ -12,23 +11,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'Proyecto notas')));
 
 let pool;
-let emailTransporter;
 
 // ======================
-// CONFIGURACIÓN EMAIL
+// URL DE TU TÚNEL GOOGLE (¡PEGA TU LINK AQUÍ!)
 // ======================
-const MI_GMAIL = process.env.EMAIL_USER;
-const MI_PASSWORD_APP = process.env.EMAIL_PASS;
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCEMWUeC1QLhQzQRS9eprQLHZaoxuzTQVZiZUbQ1eABNeefWx-tbIDRt_5HTH6tyJE1Q/exec';
+
+const BASE_URL = 'https://proyecto-notas-tzjt.onrender.com';
 
 // ======================
-// URL BASE
-// ======================
-const BASE_URL = process.env.RENDER_EXTERNAL_URL
-    ? process.env.RENDER_EXTERNAL_URL
-    : `http://localhost:${process.env.PORT || 3000}`;
-
-// ======================
-// INICIALIZACIÓN
+// INICIALIZACIÓN BD
 // ======================
 async function initServer() {
     try {
@@ -47,17 +39,6 @@ async function initServer() {
         await pool.query('SELECT 1');
         console.log('🐬 Conectado a la base de datos MySQL (Clever Cloud).');
 
-        // Configurar correo (SIN BLOQUEAR EL ARRANQUE)
-        emailTransporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: MI_GMAIL,
-                pass: MI_PASSWORD_APP
-            }
-        });
-        console.log('📧 Configuración de SMTP cargada en memoria.');
-
-        // Crear tablas si no existen
         await pool.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -102,20 +83,21 @@ app.post('/api/register', async (req, res) => {
 
         const verificationLink = `${BASE_URL}/api/verify?token=${token}`;
 
-        const mailOptions = {
-            from: MI_GMAIL,
-            to: email,
-            subject: 'Verificación de Correo - Proyecto Notas',
-            html: `
-                <h2>Hola ${username}</h2>
-                <p>Verifica tu cuenta haciendo clic en el siguiente enlace:</p>
-                <a href="${verificationLink}">Verificar Cuenta</a>
-            `
-        };
-
-        console.log('📨 Intentando enviar correo a:', email);
-        const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Correo enviado con éxito:', info.messageId);
+        // ENVIAR POR EL TÚNEL HTTP DE GOOGLE
+        console.log('📨 Mandando orden a Google Script para:', email);
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                to: email,
+                subject: 'Verificación de Correo - Proyecto Notas',
+                html: `
+                    <h2>Hola ${username}</h2>
+                    <p>Verifica tu cuenta haciendo clic en el siguiente enlace:</p>
+                    <a href="${verificationLink}">Verificar Cuenta</a>
+                `
+            })
+        });
+        console.log('✅ Orden de correo enviada a Google');
 
         res.json({ message: 'Usuario registrado. Revisa tu correo.' });
 
@@ -132,12 +114,9 @@ app.get('/api/verify', async (req, res) => {
     const { token } = req.query;
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
-        if (users.length === 0) {
-            return res.status(400).send('Token inválido.');
-        }
+        if (users.length === 0) return res.status(400).send('Token inválido.');
 
         await pool.query('UPDATE users SET verified = TRUE, token = NULL WHERE id = ?', [users[0].id]);
-
         res.send(`
             <div style="font-family:sans-serif;text-align:center;margin-top:50px;">
                 <h1>✅ Cuenta verificada</h1>
@@ -155,18 +134,10 @@ app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
-        if (users.length === 0) {
-            return res.status(400).json({ error: 'Credenciales incorrectas.' });
-        }
-        if (!users[0].verified) {
-            return res.status(400).json({ error: 'Debes verificar tu correo.' });
-        }
+        if (users.length === 0) return res.status(400).json({ error: 'Credenciales incorrectas.' });
+        if (!users[0].verified) return res.status(400).json({ error: 'Debes verificar tu correo.' });
 
-        res.json({
-            message: 'Inicio de sesión exitoso.',
-            userId: users[0].id,
-            username: users[0].username
-        });
+        res.json({ message: 'Inicio de sesión exitoso.', userId: users[0].id, username: users[0].username });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error en el inicio de sesión.' });
@@ -177,27 +148,25 @@ app.post('/api/recover', async (req, res) => {
     const { email } = req.body;
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
-        if (users.length === 0) {
-            return res.status(400).json({ error: 'Correo no registrado.' });
-        }
+        if (users.length === 0) return res.status(400).json({ error: 'Correo no registrado.' });
 
         const token = crypto.randomBytes(32).toString('hex');
         await pool.query('UPDATE users SET token = ? WHERE id = ?', [token, users[0].id]);
 
         const recoveryLink = `${BASE_URL}/recuperar.html?token=${token}`;
 
-        const mailOptions = {
-            from: MI_GMAIL,
-            to: email,
-            subject: 'Recuperación de Contraseña',
-            html: `
-                <p>Haz clic en el siguiente enlace para recuperar tu contraseña:</p>
-                <a href="${recoveryLink}">Recuperar Contraseña</a>
-            `
-        };
-
-        const info = await emailTransporter.sendMail(mailOptions);
-        console.log('✅ Correo recuperación:', info.messageId);
+        // ENVIAR RECUPERACIÓN POR EL TÚNEL HTTP DE GOOGLE
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                to: email,
+                subject: 'Recuperación de Contraseña',
+                html: `
+                    <p>Haz clic en el siguiente enlace para recuperar tu contraseña:</p>
+                    <a href="${recoveryLink}">Recuperar Contraseña</a>
+                `
+            })
+        });
 
         res.json({ message: 'Correo de recuperación enviado.' });
     } catch (error) {
@@ -210,9 +179,7 @@ app.post('/api/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
     try {
         const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
-        if (users.length === 0) {
-            return res.status(400).json({ error: 'Token inválido.' });
-        }
+        if (users.length === 0) return res.status(400).json({ error: 'Token inválido.' });
 
         await pool.query('UPDATE users SET password = ?, token = NULL WHERE id = ?', [newPassword, users[0].id]);
         res.json({ message: 'Contraseña actualizada.' });
@@ -222,6 +189,7 @@ app.post('/api/reset-password', async (req, res) => {
     }
 });
 
+// GET y POST de Notas omitidos por brevedad, asegúrate de dejar tus rutas de notas tal cual estaban aquí abajo...
 app.get('/api/notes', async (req, res) => {
     const userId = req.headers['user-id'];
     const [notes] = await pool.query('SELECT * FROM notes WHERE user_id = ?', [userId]);
@@ -245,13 +213,9 @@ app.delete('/api/notes/:id', async (req, res) => {
     res.json({ message: 'Nota eliminada.' });
 });
 
-// ======================
-// ARRANQUE RAPIDO
-// ======================
 const PORT = process.env.PORT || 3000;
 
 initServer().then(() => {
-    // Encendemos el puerto inmediatamente
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 SERVIDOR LISTO Y ESCUCHANDO EN EL PUERTO ${PORT}`);
     });
