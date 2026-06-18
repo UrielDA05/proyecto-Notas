@@ -20,9 +20,10 @@ let emailTransporter;
 const MI_GMAIL = process.env.EMAIL_USER;
 const MI_PASSWORD_APP = process.env.EMAIL_PASS;
 
-const BASE_URL = process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : `http://localhost:${process.env.PORT || 3000}`;
+// ======================
+// URL BASE
+// ======================
+const BASE_URL = 'https://proyecto-notas-production.up.railway.app';
 
 // ======================
 // INICIALIZACIÓN
