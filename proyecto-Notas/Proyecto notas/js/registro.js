@@ -11,6 +11,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if(!email || !password) return alert("Por favor, llena todos los campos.");
 
+            btnRegister.disabled = true;
+            btnRegister.textContent = "Enviando correo...";
+            btnRegister.style.backgroundColor = "#ccc"; 
+
             try {
                 const res = await fetch('/api/register', {
                     method: 'POST',
@@ -28,6 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     msg.textContent = "Error de conexión asíncrona.";
                     msg.classList.remove('hidden');
                 }
+            } finally {
+                btnRegister.disabled = false;
+                btnRegister.textContent = "Registrarse";
+                btnRegister.style.backgroundColor = "#2dc7ff";
             }
         };
     }

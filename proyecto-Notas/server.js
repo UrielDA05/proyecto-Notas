@@ -21,17 +21,23 @@ async function initServer() {
         user: process.env.DB_USER,
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
-        port: process.env.DB_PORT || 3306
+        port: process.env.DB_PORT || 3306,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
     } : {
         host: 'localhost',
         user: 'root',
         password: '',
-        database: 'notas_pwa'
+        database: 'notas_pwa',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
     };
 
-    db = await mysql.createConnection(dbConfig);
+    pool = mysql.createPool(dbConfig);
 
-    await db.query(`
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
             email VARCHAR(255) UNIQUE,
@@ -41,7 +47,7 @@ async function initServer() {
         )
     `);
 
-    await db.query(`
+    await pool.query(`
         CREATE TABLE IF NOT EXISTS notes (
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT,
@@ -60,7 +66,7 @@ async function initServer() {
         }
     });
     
-    console.log("🐬 Servidor conectado a MySQL de forma relacional.");
+    console.log("🐬 Servidor conectado a un Pool estable de MySQL.");
 }
 
 app.post('/api/register', async (req, res) => {
@@ -68,8 +74,8 @@ app.post('/api/register', async (req, res) => {
     try {
         const token = crypto.randomBytes(20).toString('hex');
         
-        // 🔥 CORRECCIÓN: Agregamos de forma explícita la columna 'verified' con valor 0
-        await db.query('INSERT INTO users (email, password, verified, token) VALUES (?, ?, 0, ?)', [email, password, token]);
+        // Usamos pool.query
+        await pool.query('INSERT INTO users (email, password, verified, token) VALUES (?, ?, 0, ?)', [email, password, token]);
         
         const link = `http://${req.headers.host}/api/verify?token=${token}`;
         
@@ -79,7 +85,7 @@ app.post('/api/register', async (req, res) => {
             subject: "Verifica tu cuenta de Notas PWA",
             html: `
             <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #fe6929; text-align: center;">¡Bienvenido a Notas!</h2>
+                <h2 style="color: #fe6929; text-align: center;">¡Bienvenido a Notas !</h2>
                 <p>Para activar tu cuenta de forma segura, por favor haz clic en el siguiente botón:</p>
                 <div style="text-align: center; margin: 30px 0;">
                     <a href="${link}" style="background-color: #2dc7ff; color: white; padding: 12px 25px; text-decoration: none; font-size: 16px; border-radius: 8px; font-weight: bold; display: inline-block;">Activar mi Cuenta</a>
@@ -90,27 +96,26 @@ app.post('/api/register', async (req, res) => {
 
         res.json({ message: 'Usuario registrado. Por favor, revisa tu Gmail para activar tu cuenta.' });
     } catch (err) {
-        // Imprime el error real en tu consola de VS Code para saber exactamente qué falló si ocurre otra cosa
-        console.error("❌ Error interno en la inserción de MySQL:", err);
+        console.error("❌ Error en registro:", err);
         res.status(400).json({ error: 'El correo electrónico ya existe o los datos son inválidos.' });
     }
 });
 
 app.get('/api/verify', async (req, res) => {
     const { token } = req.query;
-    const [users] = await db.query('SELECT * FROM users WHERE token = ?', [token]);
+    const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
     
     if (users.length === 0) {
         return res.status(400).send('<h1>El enlace de verificación es inválido.</h1>');
     }
     
-    await db.query('UPDATE users SET verified = 1, token = NULL WHERE id = ?', [users[0].id]);
+    await pool.query('UPDATE users SET verified = 1, token = NULL WHERE id = ?', [users[0].id]);
     res.redirect('/index.html');
 });
 
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
-    const [users] = await db.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
     
     if (users.length === 0) return res.status(400).json({ error: 'Usuario o contraseña incorrectos.' });
     if (users[0].verified === 0) return res.status(400).json({ error: 'Debes verificar primero tu cuenta.' });
@@ -120,11 +125,11 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/recover', async (req, res) => {
     const { email } = req.body;
-    const [users] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
+    const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (users.length === 0) return res.status(400).json({ error: 'El correo electrónico no está registrado.' });
 
     const token = crypto.randomBytes(20).toString('hex');
-    await db.query('UPDATE users SET token = ? WHERE id = ?', [token, users[0].id]);
+    await pool.query('UPDATE users SET token = ? WHERE id = ?', [token, users[0].id]);
     
     const link = `http://${req.headers.host}/recuperar.html?recoverToken=${token}`;
 
@@ -145,42 +150,41 @@ app.post('/api/recover', async (req, res) => {
 
 app.post('/api/reset-password', async (req, res) => {
     const { token, newPassword } = req.body;
-    const [users] = await db.query('SELECT * FROM users WHERE token = ?', [token]);
+    const [users] = await pool.query('SELECT * FROM users WHERE token = ?', [token]);
     if (users.length === 0) return res.status(400).json({ error: 'El token de recuperación es inválido.' });
 
-    await db.query('UPDATE users SET password = ?, token = NULL WHERE id = ?', [newPassword, users[0].id]);
+    await pool.query('UPDATE users SET password = ?, token = NULL WHERE id = ?', [newPassword, users[0].id]);
     res.json({ message: 'Contraseña actualizada con éxito.' });
 });
 
 app.get('/api/notes', async (req, res) => {
     const userId = req.headers['user-id'];
-    const [notes] = await db.query('SELECT * FROM notes WHERE user_id = ?', [userId]);
+    const [notes] = await pool.query('SELECT * FROM notes WHERE user_id = ?', [userId]);
     res.json(notes);
 });
 
 app.post('/api/notes', async (req, res) => {
     const { title, content, color, userId } = req.body;
-    await db.query('INSERT INTO notes (user_id, title, content, color) VALUES (?, ?, ?, ?)', [userId, title, content, color]);
+    await pool.query('INSERT INTO notes (user_id, title, content, color) VALUES (?, ?, ?, ?)', [userId, title, content, color]);
     res.json({ message: 'Nota guardada exitosamente.' });
 });
 
 app.put('/api/notes/:id', async (req, res) => {
     const { title, content, color } = req.body;
     const { id } = req.params;
-    await db.query('UPDATE notes SET title = ?, content = ?, color = ? WHERE id = ?', [title, content, color, id]);
+    await pool.query('UPDATE notes SET title = ?, content = ?, color = ? WHERE id = ?', [title, content, color, id]);
     res.json({ message: 'Nota actualizada correctamente.' });
 });
 
 app.delete('/api/notes/:id', async (req, res) => {
     const { id } = req.params;
-    await db.query('DELETE FROM notes WHERE id = ?', [id]);
+    await pool.query('DELETE FROM notes WHERE id = ?', [id]);
     res.json({ message: 'Nota eliminada correctamente.' });
 });
 
 const PORT = 3000;
 initServer().then(() => {
-    app.listen(PORT, () => console.log(`Servidor MySQL corriendo en puerto ${PORT}
-        http://localhost:3000`));
+    app.listen(PORT, () => console.log(` Servidor MySQL corriendo en puerto ${PORT}`));
 }).catch(err => {
     console.error("Fallo crítico al iniciar base de datos:", err);
 });
