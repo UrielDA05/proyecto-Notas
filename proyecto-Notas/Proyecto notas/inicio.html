@@ -11,7 +11,7 @@
     <header>
         <h1>Notas</h1>
         <form onsubmit="event.preventDefault();">
-            <input type="text" placeholder="Buscar">
+            <input type="text" id="buscadorNotas" placeholder="Buscar">
             <div>
                 <i class="bi bi-search"></i>
             </div>
@@ -28,5 +28,32 @@
     </main>
     <script src="js/salir.js"></script>
     <script src="js/mostrar.js"></script>
+    <script>
+    // Esperamos a que la página cargue por completo
+    document.addEventListener('DOMContentLoaded', () => {
+        const buscador = document.getElementById('buscadorNotas');
+        
+        // Cada vez que el usuario escriba una letra, se ejecuta esto:
+        buscador.addEventListener('input', (e) => {
+            const textoBuscado = e.target.value.toLowerCase();
+            
+            // Seleccionamos todas las notas que estén dentro de tu lista
+            // (Asumo que mostrar.js crea <li> o <div> dentro de #listaNotas)
+            const notasEnPantalla = document.querySelectorAll('#listaNotas > *');
+
+            notasEnPantalla.forEach(nota => {
+                // Leemos todo el texto que contiene esa nota
+                const contenidoDeLaNota = nota.textContent.toLowerCase();
+
+                // Si el texto de la nota incluye lo que escribimos, la mostramos. Si no, la ocultamos.
+                if (contenidoDeLaNota.includes(textoBuscado)) {
+                    nota.style.display = ''; // Lo deja como estaba originalmente
+                } else {
+                    nota.style.display = 'none'; // Lo esconde
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
