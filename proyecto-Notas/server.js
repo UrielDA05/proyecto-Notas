@@ -23,7 +23,9 @@ const MI_PASSWORD_APP = process.env.EMAIL_PASS;
 // ======================
 // URL BASE
 // ======================
-const BASE_URL = 'https://proyecto-notas-production.up.railway.app';
+const BASE_URL = process.env.RENDER_EXTERNAL_URL
+    ? process.env.RENDER_EXTERNAL_URL
+    : `http://localhost:${process.env.PORT || 3000}`;
 
 // ======================
 // INICIALIZACIÓN
